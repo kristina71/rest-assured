@@ -37,3 +37,4 @@ target/
 /gradlew
 /gradlew.bat
 /settings.gradle
+ajcore*
