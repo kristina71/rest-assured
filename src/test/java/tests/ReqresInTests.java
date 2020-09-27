@@ -12,6 +12,8 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
+import static io.qameta.allure.Allure.parameter;
+import static io.qameta.allure.Allure.step;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -30,17 +32,19 @@ public class ReqresInTests {
         final String name="morpheus";
         final String leader="leader";
 
-        CreateUser data = CreateUser.builder().name(name).leader(leader).build();
+        step("Create user", () -> {
+            CreateUser data = CreateUser.builder().name(name).leader(leader).build();
 
-        given()
-                .contentType(ContentType.JSON)
-                .body(data)
-                .when()
-                .post("/users/2")
-                .then()
-                .statusCode(201)
-                .log().body()
-                .body("name", is(name)).body("leader",is(leader));
+            given()
+                    .contentType(ContentType.JSON)
+                    .body(data)
+                    .when()
+                    .post("/users/2")
+                    .then()
+                    .statusCode(201)
+                    .log().body()
+                    .body("name", is(name)).body("leader", is(leader));
+        });
     }
 
     @Test
@@ -49,38 +53,47 @@ public class ReqresInTests {
         final String email="eve.holt@reqres.in";
         final String password="pistol";
 
-        RegisterUser data = RegisterUser.builder().email(email).password(password).build();
+        parameter("email", email);
+        parameter("password", password);
 
-        given()
-                .contentType(ContentType.JSON)
-                .body(data)
-                .when()
-                .post("/register")
-                .then()
-                .statusCode(200)
-                .log().body()
-                .body("token", notNullValue());
+        step("Register user", () -> {
+            RegisterUser data = RegisterUser.builder().email(email).password(password).build();
+
+            given()
+                    .contentType(ContentType.JSON)
+                    .body(data)
+                    .when()
+                    .post("/register")
+                    .then()
+                    .statusCode(200)
+                    .log().body()
+                    .body("token", notNullValue());
+        });
     }
 
     @Test
     @DisplayName("Delete user test")
     public void deleteUserTest(){
-        given()
-                .when()
-                .delete("/users/2")
-                .then()
-                .statusCode(204);
+        step("Delete user", () -> {
+            given()
+                    .when()
+                    .delete("/users/2")
+                    .then()
+                    .statusCode(204);
+        });
     }
 
     @Test
     @DisplayName("Single resource not found test")
     public void singleResourceNotFoundTest(){
-        given()
-                .contentType(ContentType.JSON)
-                .when()
-                .get("/api/unknown/23")
-                .then()
-                .statusCode(404);
+        step("A user cannot see not found resource", () -> {
+            given()
+                    .contentType(ContentType.JSON)
+                    .when()
+                    .get("/api/unknown/23")
+                    .then()
+                    .statusCode(404);
+        });
     }
 
     @Test
@@ -88,30 +101,37 @@ public class ReqresInTests {
         final String email="sydney@fife";
         final String errorMessage="Missing password";
 
-        RegisterUser data = RegisterUser.builder().email(email).build();
+        parameter("email",email);
 
-        given()
-                .contentType(ContentType.JSON)
-                .body(data)
-                .when()
-                .post("/register")
-                .then()
-                .statusCode(400).body("error", is(errorMessage));
+        step("A user cannot register with incorrect credentials", () -> {
+            RegisterUser data = RegisterUser.builder().email(email).build();
+            given()
+                    .contentType(ContentType.JSON)
+                    .body(data)
+                    .when()
+                    .post("/register")
+                    .then()
+                    .statusCode(400).body("error", is(errorMessage));
+    });
     }
 
     @Test
+    @DisplayName("User list test")
     public void usersListTest(){
-        UsersList response = given()
-                .when()
-                .queryParam("page", "2")
-                .get("/users").getBody().as(UsersList.class);
+        step("Get users list and check params", () -> {
+            UsersList response = given()
+                    .when()
+                    .queryParam("page", "2")
+                    .get("/users").getBody().as(UsersList.class);
 
-        List<UserData> usersData = response.getData();
-        usersData.stream().forEach(userItem->{
-            assertThat(userItem.getAvatar(),notNullValue());
-            assertThat(userItem.getEmail(),notNullValue());
-            assertThat(userItem.getFirstName(),notNullValue());
-            assertThat(userItem.getLastName(),notNullValue());
+            List<UserData> usersData = response.getData();
+
+            usersData.stream().forEach(userItem -> {
+                assertThat(userItem.getAvatar(), notNullValue());
+                assertThat(userItem.getEmail(), notNullValue());
+                assertThat(userItem.getFirstName(), notNullValue());
+                assertThat(userItem.getLastName(), notNullValue());
+            });
         });
     }
 
@@ -124,20 +144,28 @@ public class ReqresInTests {
         final String color="#C74375";
         final String pantone="17-2031";
 
-        SingleResource singleResource = SingleResource.builder().data(
-                SingleResourceData.builder()
-                        .id(id)
-                        .name(name)
-                        .year(year)
-                        .color(color)
-                        .pantoneValue(pantone).build()).ad(SingleResourceAd.builder().build()).build();
+        parameter("id",id);
+        parameter("name",name);
+        parameter("year",year);
+        parameter("color",color);
+        parameter("pantone value",pantone);
 
-        SingleResource response = given()
-                .contentType(ContentType.JSON)
-                .when()
-                .get("/unknown/2")
-                 .getBody().as(SingleResource.class);
+        step("Get single resource and check params", () -> {
+            SingleResource singleResource = SingleResource.builder().data(
+                    SingleResourceData.builder()
+                            .id(id)
+                            .name(name)
+                            .year(year)
+                            .color(color)
+                            .pantoneValue(pantone).build()).ad(SingleResourceAd.builder().build()).build();
 
-        assertThat(singleResource, is(response));
+            SingleResource response = given()
+                    .contentType(ContentType.JSON)
+                    .when()
+                    .get("/unknown/2")
+                     .getBody().as(SingleResource.class);
+
+            assertThat(singleResource, is(response));
+        });
     }
 }
